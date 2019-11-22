@@ -1,14 +1,14 @@
 <template>
 	<div class="container">
-		<floor v-if="floorItem.parent" :floorItem='floorItem.parent' @reply='reply' />
-		<div @mouseenter.prevent="enter" @mouseleave.prevent="leave" class="parentComent">
+		<div @mouseover.stop="enter" @mouseout="leave" class="parentComent">
+			<floor class="floorItem" v-if="floorItem.parent" :floorItem='floorItem.parent' @reply='reply' :floorItemLength="floorItemLength - 1"/>
 			<div class="title">
 				<div class="author">
 					<img :src="$axios.defaults.baseURL + floorItem.account.defaultAvatar" alt="">
 					<span>{{floorItem.account.nickname}}</span>
 					<i>2019-11-08 10:56</i>
 				</div>
-				<span>1</span>
+				<span>{{floorItemLength}}</span>
 			</div>
 			<p class="text-content">{{floorItem.content}}</p>
 			<div v-if="floorItem.pics.length" class="imgs-box">
@@ -36,6 +36,10 @@ export default {
 		floorItem: {
 			type: Object,
 			default: () => { }
+		},
+		floorItemLenght: {
+			type: Object,
+			default: () => { }
 		}
 	},
 	mounted() {
@@ -54,6 +58,18 @@ export default {
 			} else {
 				this.$emit('reply', this.floorItem.id)
 			}
+		},
+		getFloorItemLength(num, obj) {
+			if (obj.parent) {
+				return this.getFloorItemLength(num + 1, obj.parent)
+			} else {
+				return num
+			}
+		}
+	},
+	computed: {
+		floorItemLength() {
+      return this.getFloorItemLength(1, this.floorItem)
 		}
 	}
 }
@@ -63,11 +79,12 @@ export default {
 .parentComent {
 	position: relative;
 	border: 1px solid #ddd;
-	border-bottom: 1px dashed #ddd;
-	padding: 10px;
+	border-bottom: 1px solid #ddd;
+	padding: 4px;
 	background-color: #f9f9f9;
 	&:last-child {
-		border-bottom: none;
+		padding-bottom: 10px;
+		margin-bottom: 10px;
 	}
 	.title {
 		display: flex;
@@ -79,8 +96,11 @@ export default {
 			}
 		}
 	}
+	.floorItem {
+		// padding: 1px;
+	}
 	.text-content {
-		margin: 20px 0;
+		margin: 20px 0 20px 10px;
 	}
 	.imgs-box {
 		display: flex;

@@ -104,7 +104,7 @@
 				</div>
 			</el-col>
 			<el-col :span=10>
-				<div :id="id" :style="{width:width+'px',height:height+'px'}" class="m-map" />
+				<div id="container"></div>
 			</el-col>
 		</el-row>
 	</div>
@@ -112,59 +112,69 @@
 
 <script>
 export default {
-	props: {
-		width: {
-			type: Number,
-			default: 410
-		},
-		height: {
-			type: Number,
-			default: 260
-		},
-		point: {
-			type: Array,
-			default() {
-				return [116.46, 39.92]
-			}
-		}
-	},
 	data() {
 		return {
-			id: 'map',
-			key: '3afbf17bc61c656c7915b3dda60ed006'
+			map: null
 		}
 	},
-	watch: {
-		point(newVal, oldVal) {
-			this.map.setCenter(newVal)
-			this.marker.setPosition(newVal)
+	props: {
+		list: {
+			type: Array,
+			default: () => []
 		}
 	},
-	mounted() {
-		this.id = `map${Math.random().toString().slice(4, 6)}`
-		window.onmaploaded = () => {
-			let map = new window.AMap.Map(this.id, {
-				resizeEnable: true,
-				zoom: 11,
-				center: this.point
+	async mounted() {
+		this.map = await this.createMap()
+		this.setMarker()
+	},
+	methods: {
+		createMap() {
+			return new Promise((resolve) => {
+				window.onLoad = () => {
+					console.log(this.list)
+					var map = new AMap.Map('container', {
+						zoom: 15,//级别
+						center: [118.8718107, 31.32846821],//中心点坐标
+					});
+					resolve(map)
+				}
+
+				var url = 'https://webapi.amap.com/maps?v=1.4.15&key=3afbf17bc61c656c7915b3dda60ed006&callback=onLoad';
+				var jsapi = document.createElement('script');
+				jsapi.charset = 'utf-8';
+				jsapi.src = url;
+				document.head.appendChild(jsapi);
 			})
-			this.map = map
-			window.AMap.plugin('AMap.ToolBar', () => {
-				let toolbar = new window.AMap.ToolBar()
-				map.addControl(toolbar)
-				let marker = new window.AMap.Marker({
-					icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png',
-					position: this.point
+		},
+		setMarker() {
+			let arr = []
+			this.list.forEach(item => {
+				var marker = new AMap.Marker({
+					position: [item.location.longitude, item.location.latitude], //位置
 				})
-				this.marker = marker
-				marker.setMap(map)
+				marker.setLabel({
+					content: item.name,
+					direction: 'top'
+				})
+				// 给点标记添加鼠标移动时间
+				// var position = new AMap.LngLat(item.location.longitude, item.location.latitude)
+				// AMap.event.addListener(marker, 'mouseover', () => {
+				// 	marker.setLabel({
+				// 		content: item.name,
+				// 		direction: 'top'
+				// 	})
+				// 	this.map.setCenter(position)
+				// })
+				// 移除事件
+				// AMap.event.addListener(marker, 'mouseout', () => {
+				// 	marker.setLabel({
+				// 		content: ''
+				// 	})
+				// })
+				arr.push(marker)
 			})
+			this.map.add(arr)
 		}
-		const url = `https://webapi.amap.com/maps?v=1.4.10&key=${this.key}&callback=onmaploaded`
-		let jsapi = document.createElement('script')
-		jsapi.charset = 'utf-8'
-		jsapi.src = url
-		document.head.appendChild(jsapi)
 	}
 }
 </script>
@@ -193,17 +203,34 @@ export default {
 	}
 	.price-row {
 		.questiosn {
-      display: inline-block;
+			display: inline-block;
 			width: 16px;
 			height: 16px;
 			background-color: #cccccc;
 			border-radius: 50%;
-      text-align: center;
-      cursor: pointer;
-    }
-    .iconhuangguan{
-      font-size: #f90;
-    }
+			text-align: center;
+			cursor: pointer;
+		}
+		.iconhuangguan {
+			font-size: #f90;
+		}
+	}
+}
+#container {
+	width: 410px;
+	height: 260px;
+	/deep/ .amap-marker-label {
+		position: absolute;
+		z-index: 2;
+		border: 1px solid #ccc;
+		border-radius: 8px;
+		background-color: white;
+		white-space: nowrap;
+		cursor: default;
+		padding: 10px;
+		font-size: 12px;
+		line-height: 14px;
+		// top: -12px;
 	}
 }
 </style>

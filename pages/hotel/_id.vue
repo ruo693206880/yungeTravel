@@ -50,7 +50,7 @@
 			</el-table-column>
 		</el-table>
 		<!-- 地图组件 -->
-		<Map class="map" />
+		<Map class="map" :mapLocation='detailData.location' :name='detailData.name'/>
 		<!-- 酒店基本信息 -->
 		<div class="assets-info">
 			<el-row>

@@ -10,20 +10,20 @@
 		</el-row>
 		<el-row>
 			<el-col :span="24">
-				<Search />
+				<Search @getCityId='getCityId' />
 			</el-col>
 		</el-row>
 		<el-row>
-			<Map class="map" />
+			<Map class="map" :list='list' />
 		</el-row>
 		<el-row>
 			<el-col :span="24">
 				<dl class="dl-select">
 					<dt>
 						<div><span>价格</span>
-							<p><i>0</i>-<em>4000</em></p>
+							<p><i>0</i>-<em>{{hotelPrice}}</em></p>
 						</div>
-						<el-slider :max="4000" v-model="value"></el-slider>
+						<el-slider @change="handlePrice" :max="4000" v-model="value"></el-slider>
 					</dt>
 					<dd>
 						<span>住宿等级</span>
@@ -117,18 +117,21 @@ export default {
 				types: []
 			},
 			pageSize: 5,
-      pageIndex: 1,
-      total: 0,
+			pageIndex: 1,
+			total: 0,
 			hotelForm: {
 				hotellevel: null,
 				hoteltype: null,
 				hotelbrand: null,
-				hotelasset: null
+				hotelasset: null,
+        price_lt: null,
+        city: null
 			},
 			levelData: '不限',
 			typeData: '不限',
 			brandData: '不限',
-			assetData: '不限'
+			assetData: '不限',
+			hotelPrice: '4000'
 		}
 	},
 	components: {
@@ -140,30 +143,10 @@ export default {
 		this.getHotelsData()
 		this.getHotelOptions()
 	},
-	// computed: {
-	// 	hotelFilter() {
-
-	// 		let arr = this.list.filter(item => {
-	//       let valid = true
-	//       if(!item.hotellevel){
-	//         return
-	//       }
-	// 			let star = item.hotellevel.level + '星'
-	// 			// let inputStar = +this.hotelForm.hotellevel.slice(0, 1)
-	// 			if (this.hotelForm.hotellevel && star != this.hotelForm.hotellevel ||
-	// 				this.hotelForm.hoteltype && this.hotelForm.hoteltype !== item.hoteltype.name || this.hotelForm.hotelbrand && this.hotelForm.hotelbrand !== item.hotelbrand.name) {
-	// 				valid = false
-	// 			}
-
-	// 			return valid
-	// 		})
-	// 		console.log(arr, '打印')
-	// 		return ''
-	// 	}
-	// },
 	methods: {
+		// 获取酒店所有列表数据
 		getHotelsData() {
-			let { hotellevel, hoteltype, hotelbrand, hotelasset } = this.hotelForm
+			let { hotellevel, hoteltype, hotelbrand, hotelasset, price_lt, city } = this.hotelForm
 			this.$axios({
 				url: '/hotels',
 				params: {
@@ -171,16 +154,19 @@ export default {
 					hoteltype,
 					hotelbrand,
 					hotelasset,
-          _limit: this.pageSize,
-          _start: (this.pageIndex - 1) * this.pageSize
+          price_lt,
+          city,
+					_limit: this.pageSize,
+					_start: (this.pageIndex - 1) * this.pageSize
 				}
 			}).then(res => {
 				console.log(res)
 				let { data } = res.data
-        this.list = data
-        this.total = res.data.total
+				this.list = data
+				this.total = res.data.total
 			})
 		},
+		// 获取酒店选项的接口
 		getHotelOptions() {
 			this.$axios({
 				url: '/hotels/options'
@@ -191,14 +177,14 @@ export default {
 			})
 		},
 		handleSizeChange(val) {
-      console.log(`每页 ${val} 条`)
-      this.pageSize = val
-      this.getHotelsData()
+			console.log(`每页 ${val} 条`)
+			this.pageSize = val
+			this.getHotelsData()
 		},
 		handleCurrentChange(val) {
-      console.log(`当前页: ${val}`)
-      this.pageIndex = val
-      this.getHotelsData()
+			console.log(`当前页: ${val}`)
+			this.pageIndex = val
+			this.getHotelsData()
 		},
 		// 酒店星级
 		handleLevelCommand(command) {
@@ -231,6 +217,18 @@ export default {
 			this.getHotelsData()
 			this.assetData = command.split('-')[1]
 			console.log(this.hotelForm)
+    },
+    // 根据价格搜索酒店
+		handlePrice(val) {
+			console.log(val)
+			this.hotelForm.price_lt = val
+			this.getHotelsData()
+			this.hotelPrice = val
+    },
+    // 根据城市搜索酒店
+		getCityId(id) {
+      this.hotelForm.city = id
+      this.getHotelsData()
 		}
 	}
 }

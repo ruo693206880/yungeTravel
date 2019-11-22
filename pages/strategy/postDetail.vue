@@ -3,7 +3,7 @@
 		<div class="left-box">
 			<el-breadcrumb separator="/">
 				<el-breadcrumb-item :to="{ path: '/strategy' }">旅游攻略</el-breadcrumb-item>
-				<el-breadcrumb-item><a href="#">攻略详情</a></el-breadcrumb-item>
+				<el-breadcrumb-item :to="{ path: '/strategy/postDetail?id=4' }">攻略详情</el-breadcrumb-item>
 			</el-breadcrumb>
 			<h2 class="title">{{data.title}}</h2>
 			<div class="navbar">攻略：<i>2019-05-22 10:57</i>阅读：<em>9900</em></div>
@@ -33,9 +33,9 @@
 		<div class="right-box">
 			<dl>
 				<dt>相关攻略</dt>
-				<dd v-for="(item, index) in recommentList" :key="index">
+				<dd @click="goToPostDetail(item)" v-for="(item, index) in recommentList" :key="index">
 					<img v-if="!item.images.length" src="http://157.122.54.189:9095/uploads/a278a2283b884a09baa6f96656b3d61a.gif" alt="">
-          <img v-else :src="item.images[0]" alt="">
+					<img v-else :src="item.images[0]" alt="">
 					<div class="right">
 						<span>{{item.title}}</span>
 						<div><span>2019-11-07 4:21</span> 阅读 <i>8</i></div>
@@ -53,23 +53,27 @@ export default {
 	data() {
 		return {
 			postId: this.$route.query,
-      data: {},
-      recommentList: []
+			data: {},
+			recommentList: []
 		}
 	},
 	components: {
 		Comment
 	},
 	mounted() {
-		this.getPostDeatailData()
+		this.getPostDeatailData(this.postId.id)
 		this.getPostRecommend()
 	},
+	async beforeRouteUpdate(to, from, next) {
+		await this.getPostDeatailData(to.query.id)
+    next()
+	},
 	methods: {
-		getPostDeatailData() {
+		getPostDeatailData(id) {
 			this.$axios({
 				url: '/posts',
 				params: {
-					id: this.postId.id
+					id
 				}
 			}).then(res => {
 				console.log(res)
@@ -78,16 +82,22 @@ export default {
 			})
 		},
 		getPostRecommend() {
-      this.$axios({
-        url: '/posts/recommend',
-        params: {
-          id: this.postId.id
-        }
-      }).then(res => {
-        console.log(res)
-        let {data} = res.data
-        this.recommentList = data
-      })
+			this.$axios({
+				url: '/posts/recommend',
+				params: {
+					id: this.postId.id
+				}
+			}).then(res => {
+				console.log(res)
+				let { data } = res.data
+				this.recommentList = data
+			})
+		},
+		goToPostDetail(item) {
+			this.$router.push({
+				path: '/strategy/postDetail',
+				query: { id: item.id }
+			})
 		}
 	}
 }
@@ -158,13 +168,13 @@ export default {
 		dd {
 			display: flex;
 			border-bottom: 1px solid #ddd;
-      padding: 20px 0;
-
+			padding: 20px 0;
+			cursor: pointer;
 			img {
 				width: 100px;
-        height: 80px;
-        flex-shrink: 0;
-        cursor: pointer;
+				height: 80px;
+				flex-shrink: 0;
+				cursor: pointer;
 			}
 			.right {
 				display: flex;
@@ -175,8 +185,8 @@ export default {
 				color: #999;
 				> span {
 					display: block;
-          margin-top: 5px;
-          cursor: pointer;
+					margin-top: 5px;
+					cursor: pointer;
 				}
 			}
 		}

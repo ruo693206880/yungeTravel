@@ -38,7 +38,8 @@ export default {
     '@/plugins/axios',
     '@/plugins/vue-map',
     { src: "~plugins/vue-quill-editor.js", ssr: false },
-    { src: '@/plugins/localStorage', ssr: false }
+    { src: '@/plugins/localStorage', ssr: false },
+    { src: '@/plugins/vue-editor.js', mode: 'client' }
   ],
   /*
   ** Nuxt.js dev-modules

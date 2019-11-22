@@ -7,14 +7,14 @@
 		<el-input type="textarea" :rows="2" placeholder="请输入内容" v-model="textarea">
 		</el-input>
 		<div class="upload-button">
-			<el-upload action="https://jsonplaceholder.typicode.com/posts/" list-type="picture-card" :on-preview="handlePictureCardPreview" :on-remove="handleRemove">
+			<el-upload action="http://127.0.0.1:1337/upload" list-type="picture-card" :on-preview="handlePictureCardPreview" :on-remove="handleRemove" :on-success="handleSuccess" name='files' :file-list="picsArr">
 				<i class="el-icon-plus"></i>
 			</el-upload>
 			<el-button @click="submitPost" class="submitbtn" type="primary">提交</el-button>
 		</div>
 		<!-- 评论内容区域 -->
 		<ul class="comment-content">
-			<li @mouseenter.prevent="enter" @mouseleave.prevent="leave" v-for="(item, index) in commentsList" :key="index">
+			<li @mouseover.stop="enter" @mouseout.stop="leave" v-for="(item, index) in commentsList" :key="index">
 				<div class="title">
 					<div class="author">
 						<img :src="$axios.defaults.baseURL + item.account.defaultAvatar" alt="">
@@ -23,14 +23,11 @@
 					</div>
 					<span>1</span>
 				</div>
-				<ParentComment v-if="item.parent" :floorItem='item.parent' class="parentComment" @reply="getParentCommentId" />
+				<ParentComment  v-if="item.parent" :floorItem='item.parent' :floorItemLenght="item" class="parentComment" @reply="getParentCommentId" />
 				<p class="text-content">{{item.content}}</p>
 				<div v-if="item.pics.length" class="imgs-box">
 					<div class="img-content">
-						<img src="http://157.122.54.189:9095/uploads/cbcf595571f546249cbdac26684ba9bd.jpg" alt="">
-					</div>
-					<div class="img-content">
-						<img src="http://157.122.54.189:9095/uploads/cbcf595571f546249cbdac26684ba9bd.jpg" alt="">
+						<img v-for="(itemImg, index) in item.pics" :key="index" :src="$axios.defaults.baseURL + itemImg.url" alt="">
 					</div>
 				</div>
 				<a v-show="isShow" @click="reply(item.id)" class="reply" href="javascript:;">回复</a>
@@ -56,10 +53,18 @@ export default {
 			total: 0,
 			isShow: false,
 			followId: null,
-			HFisShow: false
+			HFisShow: false,
+			picsArr: []
 		}
 	},
 	methods: {
+		handleSuccess(res) {
+			console.log(res)
+			res.forEach(item => {
+        item.url = this.$axios.defaults.baseURL + item.url
+      })
+      this.picsArr = res
+		},
 		handleRemove(file, fileList) {
 			console.log(file, fileList)
 		},
@@ -88,8 +93,8 @@ export default {
 		},
 		getParentCommentId(obj) {
 			console.log(obj)
-    },
-    // 获取评论列表
+		},
+		// 获取评论列表
 		getCommentsData() {
 			this.$axios({
 				url: '/posts/comments',
@@ -107,15 +112,16 @@ export default {
 		},
 		submitPost() {
 			if (this.HFisShow) {
-        this.sendComment(this.followId)
-        this.HFisShow = false
-			}else{
-        this.sendComment()
-      }
+				this.sendComment(this.followId)
+				this.HFisShow = false
+			} else {
+				this.sendComment()
+			}
 
-    },
-    // 发送评论
+		},
+		// 发送评论
 		sendComment(follow) {
+      console.log(this.picsArr)
 			let token = this.$store.state.user.userInfo.token
 			this.$axios({
 				url: '/comments',
@@ -126,15 +132,17 @@ export default {
 				},
 				data: {
 					content: this.textarea,
-          post: this.id.id,
-          follow
+					post: this.id.id,
+					follow,
+					pics: this.picsArr
 				}
 			}).then(res => {
 				console.log(res)
 				if (res.data.status === 0) {
 					this.$message.success(res.data.message)
-          this.getCommentsData()
+					this.getCommentsData()
           this.textarea = ''
+          this.picsArr = []
 				}
 			})
 		},
@@ -186,10 +194,24 @@ export default {
 		justify-content: space-between;
 		margin: 16px 0 28px 0;
 		// flex-direction: row;
+		/deep/ .el-upload-list--picture-card {
+			/deep/ .el-upload-list__item {
+				width: 100px;
+				height: 100px;
+			}
+			/deep/ .el-upload-list__item {
+				.el-upload-list__item-thumbnail {
+					width: 100px;
+					height: 100px;
+				}
+			}
+		}
 		/deep/ .el-upload--picture-card {
 			width: 100px;
 			height: 100px;
 			line-height: 100px;
+		}
+		.el-upload {
 		}
 		.submitbtn {
 			width: 70px;

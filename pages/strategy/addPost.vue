@@ -12,8 +12,9 @@
 					<el-input v-model="postForm.input" placeholder="请输入标题"></el-input>
 				</el-form-item>
 				<el-form-item>
-					<div class="quill-editor" :content="postForm.content" @change="onEditorChange($event)" @blur="onEditorBlur($event)" @focus="onEditorFocus($event)" @ready="onEditorReady($event)" v-quill:myQuillEditor="editorOption">
-					</div>
+					<!-- <div class="quill-editor" :content="postForm.content" @change="onEditorChange($event)" @blur="onEditorBlur($event)" @focus="onEditorFocus($event)" v-quill:myQuillEditor="editorOption">
+					</div> -->
+					<vue-editor useCustomImageHandler @image-added="handleImageAdded" :editorToolbar="customToolbar" v-model="postForm.content" aria-placeholder="没有内容"></vue-editor>
 				</el-form-item>
 				<el-form-item>
 					<span>选择城市&nbsp;&nbsp;</span>
@@ -22,14 +23,20 @@
 				<el-form-item class="send">
 					<el-button @click="onSubmit" type="primary">发布</el-button>
 					<span>或者</span>
-					<a href="#">保存到草稿</a>
+					<a @click="savePost" href="javascript:;">保存到草稿</a>
 				</el-form-item>
 			</el-form>
 		</div>
 		<div class="aside">
 			<dl>
 				<dt>草稿箱(<i>0</i>)</dt>
-				<dd></dd>
+				<dd @click="getPostItem(item)" v-for="(item, index) in $store.state.stragety.draftList" :key="index">
+					<div class="content">
+						<span>{{item.input}}</span>
+						<i class="el-icon-edit"></i>
+					</div>
+					<span>{{item.saveDate}}</span>
+				</dd>
 			</dl>
 		</div>
 	</div>
@@ -37,6 +44,7 @@
 
 <script>
 import _ from 'lodash'
+import moment from 'moment'
 
 export default {
 	data() {
@@ -44,17 +52,19 @@ export default {
 			postForm: {
 				input: '',
 				content: '',
-				search_city: ''
+				search_city: '',
+				saveDate: moment(new Date()).format('YYYY-MM-DD')
 			},
-			editorOption: {
-				modules: {
-					toolbar: [
-						['bold', 'italic', 'underline', 'strike'],
-						[{ 'header': 1 }, { 'header': 2 }],
-						['image', 'video']
-					]
-				}
-			},
+			// editorOption: {
+			// 	modules: {
+			// 		toolbar: [
+			// 			['bold', 'italic', 'underline', 'strike'],
+			// 			[{ 'header': 1 }, { 'header': 2 }],
+			// 			['image', 'video']
+			// 		]
+			// 	}
+			// },
+			customToolbar: [['bold', 'italic', 'underline'], [{ 'header': 1 }, { 'header': 2 }], ['image', 'video']],
 			city: [
 				{ "value": "北京市", "address": "长宁区新渔路144号" },
 				{ "value": "南京市", "address": "上海市长宁区路6" },
@@ -68,21 +78,48 @@ export default {
 			]
 		}
 	},
+	computed: {
+		saveDraftList() {
+			let arr = []
+			arr.push({
+				title: this.postForm.input,
+				content: this.postForm.content,
+				city: this.postForm.search_city
+			})
+
+			console.log(arr)
+			return arr
+
+		}
+	},
 	mounted() {
 		console.log('this is current quill instance object', this.myQuillEditor)
 	},
 	methods: {
-		onEditorChange(editor) {
-		},
-		onEditorBlur(editor) {
-			console.log(editor);
-			this.postForm.content = editor.container.innerText
-		},
-		onEditorReady(editor) {
+		// onEditorChange(editor) {
+		// },
+		// onEditorBlur(editor) {
+		// 	console.log(editor);
+		// 	this.postForm.content = editor.container.innerText
+		// },
+		// onEditorFocus(editor) {
 
-		},
-		onEditorFocus(editor) {
-
+		// },
+		handleImageAdded: function (file, Editor, cursorLocation, resetUploader) {
+			var formData = new FormData()
+			formData.append('files', file)
+			this.$axios({
+				url: '/upload',
+				method: 'post',
+				data: formData
+			}).then(res => {
+				console.log(res)
+				let url = 'http://127.0.0.1:1337' + res.data[0].url
+				Editor.insertEmbed(cursorLocation, 'image', url)
+				resetUploader()
+			}).catch(err => {
+				console.log(err)
+			})
 		},
 		handleSelect(item) {
 			console.log(item);
@@ -107,15 +144,35 @@ export default {
 					content: this.postForm.content,
 					title: this.postForm.input,
 					city: this.postForm.search_city
-        },
-        headers: {
-            Authorization: `Bearer ${token || 'NO TOKEN'}`
-        }
+				},
+				headers: {
+					Authorization: `Bearer ${token || 'NO TOKEN'}`
+				}
 			}).then(res => {
-        console.log(res);
-        this.$message.success(res.data.message)
-        this.$router.push('/strategy')
+				console.log(res);
+				this.$message.success(res.data.message)
+				this.$router.push('/strategy')
 			})
+		},
+		// 保存到草稿箱
+		savePost() {
+			let token = this.$store.state.user.userInfo.token
+			if (!token) {
+				this.$message.error('请先登录')
+				this.$router.push('/user/login')
+				return
+			}
+			console.log(this.postForm)
+			this.$store.commit('stragety/addDraftList', {...this.postForm})
+			this.postForm.input = ''
+			this.postForm.content = ''
+			this.postForm.search_city = ''
+		},
+		// 把草稿箱的赋值给列表
+		getPostItem(item) {
+			this.postForm.input = item.input
+			this.postForm.content = item.content
+			this.postForm.search_city = item.search_city
 		}
 	}
 }
@@ -145,8 +202,27 @@ export default {
 		width: 200px;
 		dl {
 			border: 1px solid #ddd;
-			padding: 10px 0 20px 14px;
+			padding: 10px 10px 20px 14px;
+			dt {
+				padding-bottom: 10px;
+			}
+			dd {
+				border: 1px solid #ddd;
+				padding: 8px 10px;
+				line-height: 28px;
+				margin-bottom: 8px;
+				cursor: pointer;
+				.content {
+					display: flex;
+					justify-content: space-between;
+				}
+			}
 		}
+	}
+}
+/deep/ .el-form-item {
+	/deep/ .el-form-item__content {
+		margin-left: 0;
 	}
 }
 </style>
